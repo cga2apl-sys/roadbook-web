@@ -13,6 +13,7 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 
 import os
 os.makedirs("output", exist_ok=True)
+from fastapi.staticfiles import StaticFiles
 app.mount("/output", StaticFiles(directory="output"), name="output")
 templates = Jinja2Templates(directory="templates")
 
@@ -121,3 +122,32 @@ async def generate_route(
 def download(path: str):
     filename = os.path.basename(path)
     return FileResponse(path, filename=filename, media_type="application/zip")
+# --- Diags simples ---
+from fastapi.responses import JSONResponse
+
+@app.get("/health")
+def health():
+    return {"status": "ok"}
+
+@app.get("/debug/ors")
+def debug_ors():
+    import os, requests
+    key = os.getenv("ORS_API_KEY", "")
+    masked = (key[:6] + "…" + key[-4:]) if key else ""
+    try:
+        r = requests.get(
+            "https://api.openrouteservice.org/health",
+            headers={"Authorization": key, "User-Agent":"roadbook-app/1.0"},
+            timeout=10,
+        )
+        return JSONResponse({
+            "has_env_var": bool(key),
+            "ors_key_masked": masked,
+            "ors_health_http": r.status_code
+        })
+    except Exception as e:
+        return JSONResponse({
+            "has_env_var": bool(key),
+            "ors_key_masked": masked,
+            "ors_health_error": str(e)
+        })
