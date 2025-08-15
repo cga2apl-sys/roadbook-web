@@ -122,8 +122,13 @@ async def generate_route(
 def download(path: str):
     filename = os.path.basename(path)
     return FileResponse(path, filename=filename, media_type="application/zip")
+
 # --- Diags simples ---
 from fastapi.responses import JSONResponse
+import os, requests
+
+# Crée le dossier output au démarrage (utile sur Render)
+os.makedirs("output", exist_ok=True)
 
 @app.get("/health")
 def health():
@@ -131,23 +136,30 @@ def health():
 
 @app.get("/debug/ors")
 def debug_ors():
-    import os, requests
     key = os.getenv("ORS_API_KEY", "")
     masked = (key[:6] + "…" + key[-4:]) if key else ""
     try:
-        r = requests.get(
-            "https://api.openrouteservice.org/health",
-            headers={"Authorization": key, "User-Agent":"roadbook-app/1.0"},
-            timeout=10,
+        # Appel réel à ORS (itinéraire Montpellier -> Lyon)
+        r = requests.post(
+            "https://api.openrouteservice.org/v2/directions/driving-car",
+            headers={"Authorization": key, "Content-Type": "application/json", "User-Agent":"roadbook-app/1.0"},
+            json={"coordinates": [[3.8777, 43.6117], [4.8357, 45.7640]]},
+            timeout=15
         )
+        # On renvoie le code et un extrait JSON (utile pour diagnostiquer 401/403)
+        try:
+            payload = r.json()
+        except Exception:
+            payload = {"text": r.text[:300]}
         return JSONResponse({
             "has_env_var": bool(key),
             "ors_key_masked": masked,
-            "ors_health_http": r.status_code
+            "status_code": r.status_code,
+            "response": payload
         })
     except Exception as e:
         return JSONResponse({
             "has_env_var": bool(key),
             "ors_key_masked": masked,
-            "ors_health_error": str(e)
+            "error": str(e)
         })
