@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>{{ title }}</h1>
+{% if subtitle %}<p class="muted">{{ subtitle }}</p>{% endif %}
+
+<div class="card">
+  <h2>Carte de l’itinéraire</h2>
+  <iframe src="{{ map_url }}" style="width:100%; height:360px; border:0;" loading="lazy"></iframe>
+</div>
+
+{% for day in days %}
+  <article class="card day">
+    <h2>{{ day.title }}</h2>
+    {% for b in day.blocks %}
+      <p>{{ b.text }}</p>
+    {% endfor %}
+  </article>
+{% endfor %}
+
+<div class="download-bar">
+  <div class="download-inner">
+    <span>Pack complet (PDF + GPX + Carte)</span>
+    <div class="dl-actions">
+      <a class="btn-secondary" href="{{ invert_url }}">↔ Inverser l’itinéraire</a>
+      <a class="btn-primary" href="{{ zip_url }}">Télécharger le ZIP</a>
+    </div>
+  </div>
+</div>
+{% endblock %}

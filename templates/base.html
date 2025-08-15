@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>{{ title if title else "Roadbook – Planificateur" }}</title>
+  <link rel="stylesheet" href="/static/style.css"/>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+</head>
+<body>
+  <header class="hero">
+    <div class="container hero-inner">
+      <div class="hero-text">
+        <div class="kicker">Générateur de roadbooks</div>
+        <h1>Voyage à moto ou en voiture</h1>
+        <p>Créez vos itinéraires culture & nature, exportez le PDF + GPX, et partagez une carte interactive.</p>
+      </div>
+      <div class="hero-illu" aria-hidden="true"></div>
+    </div>
+  </header>
+  <main class="container">
+    {% block content %}{% endblock %}
+  </main>
+  <footer class="footer">
+    <div class="container">© 2025 Roadbook — PDF / GPX / Carte — Propulsé par FastAPI</div>
+  </footer>
+</body>
+</html>

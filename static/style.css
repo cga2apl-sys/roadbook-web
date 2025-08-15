@@ -1,0 +1,45 @@
+:root{ --bg:#0b1020; --card:#0f172a; --panel:#111827; --text:#e5e7eb; --muted:#9ca3af; --primary:#60a5fa; --accent:#22c55e; --danger:#ef4444; --secondary:#334155; }
+*{ box-sizing:border-box; }
+body{ margin:0; font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto; color:var(--text); background:var(--bg); }
+.container{ max-width:1100px; margin:0 auto; padding:24px; }
+.hero{ background:linear-gradient(135deg,#0b1020 0%,#111a35 100%); border-bottom:1px solid #1f2740; }
+.hero-inner{ display:flex; align-items:center; gap:24px; padding:28px 0; }
+.hero-text .kicker{ text-transform:uppercase; letter-spacing:.12em; color:#93c5fd; font-size:12px; }
+.hero-text h1{ font-size:34px; margin:6px 0 8px; }
+.hero-text p{ color:#cbd5e1; margin:0; }
+.hero-illu{ flex:1; min-height:120px; background: url('https://images.unsplash.com/photo-1518552781858-8fdbdd604a46?q=80&w=1200&auto=format&fit=crop') center/cover no-repeat; border-radius:16px; border:1px solid #1e293b; }
+.toolbar{ display:flex; justify-content:flex-end; margin:16px 0; }
+.card{ background:var(--card); padding:20px; border:1px solid #1e293b; border-radius:12px; }
+.card-title{ margin-top:0; }
+.row{ display:flex; gap:16px; margin-bottom:16px; flex-wrap:wrap; }
+.col{ flex:1 1 0; min-width:220px; position:relative; }
+label{ display:block; font-weight:600; margin-bottom:6px; }
+input, select{ width:100%; padding:10px 12px; border:1px solid #334155; border-radius:8px; background:#0b1222; color:var(--text); }
+small{ color:var(--muted); }
+.muted{ color:var(--muted); }
+.actions{ display:flex; justify-content:flex-end; margin-top:8px; }
+.btn-primary{ background:var(--accent); color:#0b1020; padding:10px 16px; border:none; border-radius:8px; cursor:pointer; text-decoration:none; font-weight:600; }
+.btn-primary:hover{ filter:brightness(0.95); }
+.btn-secondary{ background:var(--primary); color:#0b1020; padding:10px 14px; border:none; border-radius:8px; cursor:pointer; text-decoration:none; font-weight:600; }
+.btn-danger{ background:var(--danger); color:#fff; padding:8px 12px; border:none; border-radius:8px; cursor:pointer; }
+.footer{ color:var(--muted); font-size:14px; padding:24px 0; border-top:1px solid #1e293b; }
+.day h2{ margin-top:0; }
+.suggest{
+  list-style:none; margin:6px 0 0; padding:0;
+  position:absolute; width:100%; max-height:180px; overflow:auto;
+  background:#0b1222; border:1px solid #334155; border-radius:8px;
+  z-index:10;
+}
+.suggest li{ padding:8px 10px; cursor:pointer; }
+.suggest li:hover{ background:#0f1a33; }
+.download-bar{
+  position: fixed; left:0; right:0; bottom:0;
+  background: #050814; color:#fff; border-top:1px solid #1e293b;
+  padding: 10px 0; z-index: 1000;
+}
+.download-inner{
+  max-width:1100px; margin:0 auto; padding:0 24px;
+  display:flex; justify-content:space-between; align-items:center; gap:12px;
+}
+.dl-actions{ display:flex; gap:10px; }
+.download-bar .btn-primary{ background:#22c55e; color:#0b1020; }

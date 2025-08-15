@@ -1,0 +1,183 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="toolbar">
+  <a class="btn-secondary" href="/invert?start_city={{ end_city }}&start_lat={{ end_lat }}&start_lon={{ end_lon }}&end_city={{ start_city }}&end_lat={{ start_lat }}&end_lon={{ start_lon }}">↔ Inverser départ/arrivée</a>
+</div>
+
+<form class="card" action="/generate" method="post">
+  <h2 class="card-title">Critères du voyage</h2>
+  <div class="row">
+    <div class="col">
+      <label>Départ</label>
+      <input id="start_city" name="start_city" placeholder="Ville de départ" value="{{ start_city }}" required oninput="auto('start')">
+      <small>Auto-complétion</small>
+      <ul id="start_suggest" class="suggest"></ul>
+    </div>
+    <div class="col">
+      <label>Latitude</label>
+      <input id="start_lat" name="start_lat" placeholder="Latitude" value="{{ start_lat }}" required>
+    </div>
+    <div class="col">
+      <label>Longitude</label>
+      <input id="start_lon" name="start_lon" placeholder="Longitude" value="{{ start_lon }}" required>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="col">
+      <label>Arrivée</label>
+      <input id="end_city" name="end_city" placeholder="Ville d'arrivée" value="{{ end_city }}" required oninput="auto('end')">
+      <small>Auto-complétion</small>
+      <ul id="end_suggest" class="suggest"></ul>
+    </div>
+    <div class="col">
+      <label>Latitude</label>
+      <input id="end_lat" name="end_lat" placeholder="Latitude" value="{{ end_lat }}" required>
+    </div>
+    <div class="col">
+      <label>Longitude</label>
+      <input id="end_lon" name="end_lon" placeholder="Longitude" value="{{ end_lon }}" required>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="col">
+      <label>Date de début</label>
+      <input type="date" name="start_date" value="2025-08-20" required>
+    </div>
+    <div class="col">
+      <label>Date de fin</label>
+      <input type="date" name="end_date" value="2025-08-28" required>
+    </div>
+    <div class="col">
+      <label>Moyen de transport</label>
+      <select name="vehicle">
+        <option value="voiture">Voiture</option>
+        <option value="moto" selected>Moto</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="col">
+      <label>Mode de parcours</label>
+      <select name="routing_mode">
+        <option value="rapide" selected>Rapide (autoroutes prioritaires)</option>
+        <option value="decouverte">Découverte (sans autoroute, trajet rapide)</option>
+        <option value="sinueux">Sinueux (départementales privilégiées)</option>
+      </select>
+      <small>Le calcul utilise OpenRouteService (préférences de route).</small>
+    </div>
+    <div class="col">
+      <label>Départ quotidien</label>
+      <input name="day_start" value="08:30" required>
+      <small>hh:mm</small>
+    </div>
+    <div class="col">
+      <label>Arrivée max</label>
+      <input name="day_end" value="19:00" required>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="col">
+      <label>Trajet continu max</label>
+      <input name="max_drive" value="120" required>
+      <small>minutes</small>
+    </div>
+    <div class="col">
+      <label>Style</label>
+      <select name="style">
+        <option value="culture_nature" selected>Culture + Nature</option>
+        <option value="culture_only">Culture</option>
+        <option value="nature_only">Nature</option>
+      </select>
+    </div>
+  </div>
+
+  <h2 style="margin-top:12px;">Arrêts personnalisés (facultatif)</h2>
+  <p class="muted">Ajoutez des étapes intermédiaires entre Départ et Arrivée (dans l'ordre). Exemple : La Rochelle, Pornic, Angers…</p>
+  <div id="stops"></div>
+  <div class="actions" style="justify-content:flex-start; gap:8px;">
+    <button type="button" class="btn-secondary" onclick="addStop()">+ Ajouter un arrêt</button>
+    <button type="button" class="btn-secondary" onclick="clearStops()">Supprimer tous les arrêts</button>
+  </div>
+
+  <div class="actions">
+    <button type="submit" class="btn-primary">Générer le roadbook</button>
+  </div>
+</form>
+
+<script>
+async function auto(which){
+  const inp = document.getElementById(which+'_city');
+  const ul  = document.getElementById(which+'_suggest');
+  const lat = document.getElementById(which+'_lat');
+  const lon = document.getElementById(which+'_lon');
+  const q = inp.value;
+  if(q.length < 2){ ul.innerHTML=''; return; }
+  try{
+    const r = await fetch('/geocode?q='+encodeURIComponent(q));
+    const data = await r.json();
+    ul.innerHTML = '';
+    data.forEach(item=>{
+      const li = document.createElement('li');
+      li.textContent = item.label + ' ('+item.lat.toFixed(4)+', '+item.lon.toFixed(4)+')';
+      li.onclick = ()=>{ inp.value = item.label; lat.value = item.lat; lon.value = item.lon; ul.innerHTML=''; };
+      ul.appendChild(li);
+    });
+  }catch(e){ console.error(e); }
+}
+
+let stopIndex = 0;
+function addStop() {
+  stopIndex++;
+  const wrap = document.getElementById('stops');
+  const row = document.createElement('div');
+  row.className = 'row stop-row';
+  row.innerHTML = `
+    <div class="col">
+      <label>Nom de l'arrêt #${stopIndex}</label>
+      <input name="stop_name" placeholder="Ex: La Rochelle" oninput="autoStop(this)">
+      <small>Nom (auto-complétion)</small>
+      <ul class="suggest"></ul>
+    </div>
+    <div class="col">
+      <label>Latitude</label>
+      <input name="stop_lat" placeholder="Ex: 46.1603">
+    </div>
+    <div class="col">
+      <label>Longitude</label>
+      <input name="stop_lon" placeholder="Ex: -1.1511">
+    </div>
+    <div class="col" style="align-self:flex-end;">
+      <button type="button" class="btn-danger" onclick="this.closest('.stop-row').remove()">Supprimer</button>
+    </div>
+  `;
+  wrap.appendChild(row);
+}
+function clearStops(){
+  document.getElementById('stops').innerHTML = '';
+  stopIndex = 0;
+}
+async function autoStop(inputEl){
+  const row = inputEl.closest('.stop-row');
+  const ul = row.querySelector('.suggest');
+  const lat = row.querySelector('input[name="stop_lat"]');
+  const lon = row.querySelector('input[name="stop_lon"]');
+  const q = inputEl.value;
+  if(q.length < 2){ ul.innerHTML=''; return; }
+  try{
+    const r = await fetch('/geocode?q='+encodeURIComponent(q));
+    const data = await r.json();
+    ul.innerHTML = '';
+    data.forEach(item=>{
+      const li = document.createElement('li');
+      li.textContent = item.label + ' ('+item.lat.toFixed(4)+', '+item.lon.toFixed(4)+')';
+      li.onclick = ()=>{ inputEl.value = item.label; lat.value = item.lat; lon.value = item.lon; ul.innerHTML=''; };
+      ul.appendChild(li);
+    });
+  }catch(e){ console.error(e); }
+}
+</script>
+{% endblock %}

@@ -1,0 +1,9 @@
+fastapi
+uvicorn[standard]
+jinja2
+python-multipart
+reportlab
+PyYAML
+requests
+folium
+python-dotenv
