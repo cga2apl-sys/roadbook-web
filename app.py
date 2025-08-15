@@ -10,6 +10,9 @@ from generator import generate
 load_dotenv()
 app = FastAPI()
 app.mount("/static", StaticFiles(directory="static"), name="static")
+
+import os
+os.makedirs("output", exist_ok=True)
 app.mount("/output", StaticFiles(directory="output"), name="output")
 templates = Jinja2Templates(directory="templates")
 
