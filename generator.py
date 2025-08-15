@@ -8,48 +8,61 @@ from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, PageBreak
 from reportlab.lib.enums import TA_JUSTIFY
 
 def ors_route(api_key, coords, profile="driving-car", mode="rapide"):
-    # Build ORS body depending on mode
-    if not api_key:
-        # fallback: haversine + 80 km/h average for distance/time
-        import math
-        def hav(a,b):
-            R=6371.0
-            la1,lo1,la2,lo2=map(math.radians,[a['lat'],a['lon'],b['lat'],b['lon']])
-            dlat=la2-la1; dlon=lo2-lo1
-            h=math.sin(dlat/2)**2+math.cos(la1)*math.cos(la2)*math.sin(dlon/2)**2
-            d=2*R*math.asin(math.sqrt(h))
-            return d
-        d=hav(coords[0],coords[1])
+    import math, logging, requests
+
+    # Secours local : Haversine + vitesse moyenne par mode (km/h)
+    def fallback(a, b):
+        R=6371.0
+        la1,lo1,la2,lo2=map(math.radians,[a['lat'],a['lon'],b['lat'],b['lon']])
+        dlat=la2-la1; dlon=lo2-lo1
+        h=math.sin(dlat/2)**2+math.cos(la1)*math.cos(la2)*math.sin(dlon/2)**2
+        d=2*R*math.asin(math.sqrt(h))
         speed = 90 if mode=='rapide' else (70 if mode=='decouverte' else 55)
         dur = (d/speed)*60.0
         return d, dur, []
 
+    # Pas de clé → estimation immédiate
+    if not api_key:
+        logging.warning("ORS_API_KEY absente → fallback Haversine.")
+        return fallback(coords[0], coords[1])
+
     url = f"https://api.openrouteservice.org/v2/directions/{profile}"
     body = {"coordinates": [[c["lon"], c["lat"]] for c in coords]}
 
-    # Preferences per mode
     if mode == "rapide":
         body["preference"] = "fastest"
-        # autoroute autorisées
-        # no avoid_features
     elif mode == "decouverte":
         body["preference"] = "fastest"
-        body["options"] = {"avoid_features": ["highways"]}  # éviter autoroutes
+        body["options"] = {"avoid_features": ["highways"]}
     elif mode == "sinueux":
-        # favor small roads: avoid highways, prefer shortest
         body["preference"] = "shortest"
         body["options"] = {"avoid_features": ["highways"]}
     else:
         body["preference"] = "fastest"
 
-    headers={"Authorization": api_key, "Content-Type":"application/json"}
-    r = requests.post(url, json=body, headers=headers, timeout=30)
-    r.raise_for_status()
-    feat = r.json()["features"][0]
-    dist_km = feat["properties"]["summary"]["distance"]/1000.0
-    dur_min = feat["properties"]["summary"]["duration"]/60.0
-    geometry = feat["geometry"]["coordinates"]
-    return dist_km, dur_min, geometry
+    headers = {"Authorization": api_key, "Content-Type":"application/json", "User-Agent":"roadbook-app/1.0"}
+
+    try:
+        r = requests.post(url, json=body, headers=headers, timeout=30)
+        if r.status_code != 200:
+            logging.warning("ORS HTTP %s: %s", r.status_code, r.text[:300])
+            return fallback(coords[0], coords[1])
+
+        data = r.json()
+        if "features" in data and data["features"]:
+            feat = data["features"][0]
+            dist_km = feat["properties"]["summary"]["distance"]/1000.0
+            dur_min = feat["properties"]["summary"]["duration"]/60.0
+            geometry = feat.get("geometry", {}).get("coordinates", [])
+            return dist_km, dur_min, geometry
+        else:
+            logging.warning("ORS sans 'features': %s", str(data)[:300])
+            return fallback(coords[0], coords[1])
+
+    except Exception as e:
+        logging.exception("Appel ORS échoué → fallback: %s", e)
+        return fallback(coords[0], coords[1])
+    
 
 def gpx_waypoints_xml(points):
     out = ['<?xml version="1.0" encoding="UTF-8"?>',
